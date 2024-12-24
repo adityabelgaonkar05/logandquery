@@ -2,6 +2,8 @@ from fastapi import FastAPI, APIRouter, HTTPException
 from database.schema import fetched_logs
 from database.models import Log
 from configurations import collection
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from sync_with_mongodb import sync_logs
 
 app = FastAPI()
 router = APIRouter()
@@ -9,9 +11,15 @@ router = APIRouter()
 async def create_indexes():
     await collection.create_index([("timestamp", 1)])  
 
+def start_scheduler():
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(sync_logs, 'interval', minutes=1) #change according to requirement
+    scheduler.start()
+
+app.add_event_handler("startup", start_scheduler)
 app.add_event_handler("startup", create_indexes)
 
-@router.get("/")
+@router.get("/get-all-logs")
 async def get_logs():
     logs = await collection.find().to_list(length=None)
     return fetched_logs(logs)
