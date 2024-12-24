@@ -6,6 +6,8 @@ services:
       - discovery.type=single-node 
       - ELASTIC_PASSWORD=elastic_password
       - xpack.security.enabled=false
+      - http.cors.enabled=true
+      - http.cors.allow-origin="*"
     ports:
       - "9200:9200"  #search port
       - "9300:9300" 
