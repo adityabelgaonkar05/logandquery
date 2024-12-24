@@ -1,4 +1,3 @@
-import datetime
 from typing import Dict
 
 def fetched_log(log):
