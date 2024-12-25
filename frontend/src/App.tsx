@@ -13,7 +13,7 @@ function App() {
   useEffect(() => {
     const fetchResults = async () => {
       setLoading(true);
-      const res = await fetch('http://localhost:9200/logs_index/_search?pretty', {
+      const res = await fetch('http://localhost:9200/logs_index/_search?pretty&size=100', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
