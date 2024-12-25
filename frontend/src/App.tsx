@@ -13,7 +13,7 @@ function App() {
   useEffect(() => {
     const fetchResults = async () => {
       setLoading(true);
-      const res = await fetch('http://localhost:9200/logs_index/_search?pretty&size=10', {
+      const res = await fetch('http://localhost:9200/logs_index/_search?pretty', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,7 +29,7 @@ function App() {
                   return { range: { [key]: rangeFilter } };
                 }
                 return { match: { [key]: value } };
-              }),              
+              }),
             },
           },
         }),
@@ -46,10 +46,18 @@ function App() {
 
   const handleAddFilter = () => {
     if (currentFilterKey === 'timestamp' && typeof currentFilterValue === 'object') {
-      if (currentFilterValue.gte || currentFilterValue.lte) {
+      const updatedFilter = {
+        ...filters[currentFilterKey],
+        ...(currentFilterValue.gte ? { gte: currentFilterValue.gte } : {}),
+        ...(currentFilterValue.lte ? { lte: currentFilterValue.lte } : {}),
+      };
+
+      if (!updatedFilter.gte && !updatedFilter.lte) {
+        handleRemoveFilter('timestamp');
+      } else {
         setFilters((prevFilters) => ({
           ...prevFilters,
-          [currentFilterKey]: currentFilterValue,
+          [currentFilterKey]: updatedFilter,
         }));
       }
     } else if (currentFilterKey && currentFilterValue) {
@@ -96,11 +104,13 @@ function App() {
                 onChange={(date) =>
                   setCurrentFilterValue((prev) => ({
                     ...(prev as { gte?: string; lte?: string }),
-                    gte: date.toISOString(),
+                    gte: date ? date.toISOString() : null,
                   }))
                 }
+                isClearable
               />
             </label>
+
             <label>
               Less than:
               <Datetime
@@ -108,9 +118,10 @@ function App() {
                 onChange={(date) =>
                   setCurrentFilterValue((prev) => ({
                     ...(prev as { gte?: string; lte?: string }),
-                    lte: date.toISOString(),
+                    lte: date ? date.toISOString() : null,
                   }))
                 }
+                isClearable
               />
             </label>
           </div>
@@ -124,6 +135,7 @@ function App() {
         )}
         <button onClick={handleAddFilter}>Add Filter</button>
       </div>
+
       <div className="active-filters">
         <h4>Active Filters:</h4>
         {Object.entries(filters).map(([key, value]) => (
@@ -133,6 +145,7 @@ function App() {
           </span>
         ))}
       </div>
+
       {loading && <p>Loading...</p>}
       <div className="results">
         {searchResults?.length > 0 ? (
@@ -142,9 +155,10 @@ function App() {
               <p>{result._source.timestamp}</p>
             </div>
           ))
-        ) : (
+        ) : filters.length ? (
           <p>No results found</p>
-        )}
+        ) : null
+        }
       </div>
     </div>
   );
