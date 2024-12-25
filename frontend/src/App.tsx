@@ -73,6 +73,9 @@ function App() {
     setFilters((prevFilters) => {
       const newFilters = { ...prevFilters };
       delete newFilters[key];
+      if(!newFilters) {
+        setSearchResults(null);
+      }
       return newFilters;
     });
   };
@@ -148,7 +151,7 @@ function App() {
 
       {loading && <p>Loading...</p>}
       <div className="results">
-        {searchResults?.length > 0 ? (
+        {searchResults && searchResults.length ? (
           searchResults.map((result: any) => (
             <div key={result._id} className="result">
               <p> message: {result._source.message}</p>
@@ -157,13 +160,32 @@ function App() {
               <p>traceId: {result._source.traceId}</p>
               <p>spanId: {result._source.spanId}</p>
               <p>commit: {result._source.commit}</p>
-              <p>parentResourceId: {result._source.metadata.parentResourceId}</p>
+              <p className='meta-data'>
+                metadata: {result._source.metadata ? (
+                  
+                  result._source.metadata ? (
+                    <ul>
+                      {Object.entries(result._source.metadata).map(([key, value]) => (
+                        <li key={key}>
+                          {key}: {String(value)}
+                        </li>
+                      ))
+                      }
+                    </ul>
+                  ) : (
+                    <p>No metadata available</p>
+                  )
+                ) : (
+                  <p>metadata not found</p>
+                )}
+
+              </p>
               <p>timestamp: {result._source.timestamp}</p>
             </div>
           ))
-        ) : filters.length ? (
-          <p>No results found</p>
-        ) : null
+          ) : filters ? (
+            <p>No results found</p>
+          ) : null
         }
       </div>
     </div>
