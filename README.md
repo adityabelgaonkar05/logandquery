@@ -11,7 +11,7 @@ Ensure the following tools are installed and working on your system:
 Open three terminals for ElasticSearch, frontend, and backend, and follow these steps:
 
 ### Step 1: Run ElasticSearch
-In the root directory, run:
+In the root directory, after running docker desktop, run:
 ```
 docker-compose up
 ```

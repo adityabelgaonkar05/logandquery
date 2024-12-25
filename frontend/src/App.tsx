@@ -151,8 +151,14 @@ function App() {
         {searchResults?.length > 0 ? (
           searchResults.map((result: any) => (
             <div key={result._id} className="result">
-              <h2>{result._source.message}</h2>
-              <p>{result._source.timestamp}</p>
+              <p> message: {result._source.message}</p>
+              <p>level: {result._source.level}</p>
+              <p>resourceId: {result._source.resourceId}</p>
+              <p>traceId: {result._source.traceId}</p>
+              <p>spanId: {result._source.spanId}</p>
+              <p>commit: {result._source.commit}</p>
+              <p>parentResourceId: {result._source.metadata.parentResourceId}</p>
+              <p>timestamp: {result._source.timestamp}</p>
             </div>
           ))
         ) : filters.length ? (
