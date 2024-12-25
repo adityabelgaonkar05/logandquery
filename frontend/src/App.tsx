@@ -1,57 +1,153 @@
-import { useState , useEffect} from 'react'
-import './App.css'
+import { useState, useEffect } from 'react';
+import Datetime from 'react-datetime';
+import './App.css';
+import "react-datetime/css/react-datetime.css";
 
 function App() {
-  const [searchResults, setSearchResults] = useState<string[]>([])
-  const [searchTerm, setSearchTerm] = useState<string>('')
-  const [loading, setLoading] = useState<boolean>(false)
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [filters, setFilters] = useState<{ [key: string]: string | { gte?: string; lte?: string } }>({});
+  const [currentFilterKey, setCurrentFilterKey] = useState<string>('level');
+  const [currentFilterValue, setCurrentFilterValue] = useState<string | { gte?: string; lte?: string }>('');
 
   useEffect(() => {
     const fetchResults = async () => {
-      setLoading(true)
-      const res = await fetch("http://localhost:9200/logs_index/_search?pretty&size=10", {
-        method: "POST",
+      setLoading(true);
+      const res = await fetch('http://localhost:9200/logs_index/_search?pretty&size=10', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query: {
-            match: {
-              "level": searchTerm,
+            bool: {
+              must: Object.entries(filters).map(([key, value]) => {
+                if (key === 'timestamp' && typeof value === 'object') {
+                  const rangeFilter: { gte?: string; lte?: string } = {};
+                  if (value.gte) rangeFilter.gte = value.gte;
+                  if (value.lte) rangeFilter.lte = value.lte;
+                  return { range: { [key]: rangeFilter } };
+                }
+                return { match: { [key]: value } };
+              }),              
             },
           },
         }),
-      })
-      const data = await res.json()
-      console.log(data)
-      setSearchResults(data.hits.hits)
-      setLoading(false)
-    }
+      });
+      const data = await res.json();
+      setSearchResults(data.hits?.hits || []);
+      setLoading(false);
+    };
 
-    if (searchTerm) {
-      fetchResults()
+    if (Object.keys(filters).length > 0) {
+      fetchResults();
     }
-    
-  }, [searchTerm])
+  }, [filters]);
+
+  const handleAddFilter = () => {
+    if (currentFilterKey === 'timestamp' && typeof currentFilterValue === 'object') {
+      if (currentFilterValue.gte || currentFilterValue.lte) {
+        setFilters((prevFilters) => ({
+          ...prevFilters,
+          [currentFilterKey]: currentFilterValue,
+        }));
+      }
+    } else if (currentFilterKey && currentFilterValue) {
+      setFilters((prevFilters) => ({
+        ...prevFilters,
+        [currentFilterKey]: currentFilterValue as string,
+      }));
+    }
+    setCurrentFilterValue('');
+  };
+
+  const handleRemoveFilter = (key: string) => {
+    setFilters((prevFilters) => {
+      const newFilters = { ...prevFilters };
+      delete newFilters[key];
+      return newFilters;
+    });
+  };
 
   return (
     <div className="App">
-      <h1>Search for logs</h1>
-      <input
-        type="text"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Search for logs"
-      />
+      <h1>Search Logs</h1>
+      <div className="filters">
+        <h3>Apply Filters</h3>
+        <select
+          value={currentFilterKey}
+          onChange={(e) => setCurrentFilterKey(e.target.value)}
+        >
+          <option value="level">Level</option>
+          <option value="message">Message</option>
+          <option value="resourceId">Resource ID</option>
+          <option value="timestamp">Timestamp</option>
+          <option value="traceId">Trace ID</option>
+          <option value="spanId">Span ID</option>
+          <option value="commit">Commit</option>
+          <option value="metadata.parentResourceId">Parent Resource ID</option>
+        </select>
+        {currentFilterKey === 'timestamp' ? (
+          <div>
+            <label>
+              Greater than:
+              <Datetime
+                value={(currentFilterValue as { gte?: string }).gte || ''}
+                onChange={(date) =>
+                  setCurrentFilterValue((prev) => ({
+                    ...(prev as { gte?: string; lte?: string }),
+                    gte: date.toISOString(),
+                  }))
+                }
+              />
+            </label>
+            <label>
+              Less than:
+              <Datetime
+                value={(currentFilterValue as { lte?: string }).lte || ''}
+                onChange={(date) =>
+                  setCurrentFilterValue((prev) => ({
+                    ...(prev as { gte?: string; lte?: string }),
+                    lte: date.toISOString(),
+                  }))
+                }
+              />
+            </label>
+          </div>
+        ) : (
+          <input
+            type="text"
+            value={currentFilterValue as string}
+            onChange={(e) => setCurrentFilterValue(e.target.value)}
+            placeholder={`Enter value for ${currentFilterKey}`}
+          />
+        )}
+        <button onClick={handleAddFilter}>Add Filter</button>
+      </div>
+      <div className="active-filters">
+        <h4>Active Filters:</h4>
+        {Object.entries(filters).map(([key, value]) => (
+          <span key={key}>
+            {key}: {typeof value === 'object' ? JSON.stringify(value) : value}{' '}
+            <button onClick={() => handleRemoveFilter(key)}>x</button>
+          </span>
+        ))}
+      </div>
       {loading && <p>Loading...</p>}
-      {searchResults.map((result: any) => (
-        <div key={result._id}>
-          <h2>{result._source.message}</h2>
-          <p>{result._source.timestamp}</p>
-        </div>
-      ))}
+      <div className="results">
+        {searchResults?.length > 0 ? (
+          searchResults.map((result: any) => (
+            <div key={result._id} className="result">
+              <h2>{result._source.message}</h2>
+              <p>{result._source.timestamp}</p>
+            </div>
+          ))
+        ) : (
+          <p>No results found</p>
+        )}
+      </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
