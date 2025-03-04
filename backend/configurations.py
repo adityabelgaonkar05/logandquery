@@ -1,7 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from elasticsearch import Elasticsearch
 
-uri = "mongodb+srv://aditya:12345@cluster0.gtj1o.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+uri = "mongodb+srv://aditya:12345@cluster0.gtj1o.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0" #dw i deactivated this db
 
 client = AsyncIOMotorClient (uri)
 es = Elasticsearch (
